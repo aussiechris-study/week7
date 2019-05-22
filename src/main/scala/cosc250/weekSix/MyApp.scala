@@ -29,10 +29,11 @@ object MyApp extends App {
   val hello = system.actorOf(Props[Terrible], name = "Terrible")
 
   // Set the players up in a circle
-
+  algernon ! NextPlayerIs(bertie)
+  bertie ! NextPlayerIs(cecily)
+  cecily ! NextPlayerIs(hello)
+  hello ! NextPlayerIs(algernon)
 
   // Start the game by sending the first player the number 0
-
-
+  algernon ! 0
 }
-

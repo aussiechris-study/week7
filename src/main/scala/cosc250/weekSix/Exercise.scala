@@ -10,11 +10,11 @@ import scala.concurrent.{Promise, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
- * This week, let's play FizzBuzz with Actors.
- *
- * If you're not sure what FizzBuzz is, see https://en.wikipedia.org/wiki/Fizz_buzz
- *
- */
+  * This week, let's play FizzBuzz with Actors.
+  *
+  * If you're not sure what FizzBuzz is, see https://en.wikipedia.org/wiki/Fizz_buzz
+  *
+  */
 object Exercise {
 
   /*
@@ -22,22 +22,24 @@ object Exercise {
    * Note: we can also just pass a bare Int! Normally we wouldn't -- it's nice to have a single trait
    * or abstract class all our messages belong to -- but for this exercise let's show it's possible
    */
-  case class Fizz(i:Int)
-  case class Buzz(i:Int)
-  case class FizzBuzz(i:Int)
+  case class Fizz(i: Int)
+
+  case class Buzz(i: Int)
+
+  case class FizzBuzz(i: Int)
 
   /*
    * And we need a message so the next player can say "Wrong! You're out!"
    *
    * Note, I've made this message generic, so it can contain any of our messages
    */
-  case class Wrong[T](item:T)
+  case class Wrong[T](item: T)
 
   /*
    * We're also going to need some "set-up" messages, to tell the Actors who is standing
    * next to whom (if Alice goes "Fizz(3)", who goes next?
    */
-  case class NextPlayerIs(a:ActorRef)
+  case class NextPlayerIs(a: ActorRef)
 
   /**
     * This is a little utility method I've made. It creates a PartialFunction that
@@ -48,7 +50,7 @@ object Exercise {
     *
     * log("MyActor") andThen { case ... }
     */
-  def log(name:String):PartialFunction[Any, Any] = {
+  def log(name: String): PartialFunction[Any, Any] = {
     case m =>
       println(name + " received " + m)
       m
@@ -59,6 +61,25 @@ object Exercise {
    */
   class FizzBuzzActor extends Actor {
 
+    var nextPlayer: Option[ActorRef] = None
+
+    def nextResponse(i: Int) = {
+      if (i % 15 == 0)
+        FizzBuzz(i)
+      else if (i % 3 == 0)
+        Fizz(i)
+      else if (i % 5 == 0)
+        Buzz(i)
+      else
+        i
+    }
+
+    def respond(i: Int) = {
+      val n = nextResponse(i + 1)
+      println("Player says " + n)
+      for {p <- nextPlayer} p ! n
+    }
+
     /*
      * In class, I hadn't shown the type of the receive method. It's a PartialFunction!
      * (Ah, the joy of being able to link back to earlier lectures...)
@@ -66,16 +87,32 @@ object Exercise {
      * Curiously, this means you can also change the def to a val and it will still work.
      * I'll leave why that is as an exercise for the reader...
      */
-    def receive:PartialFunction[Any, Unit] = log("FBA") andThen {
+    def receive: PartialFunction[Any, Unit] = log("FBA") andThen {
 
       // Now decide how your actor is going to respond to the messages. Note, you might need to
       // Create member variables and functions...
 
       // We have to have at least one case statement to make this compile as a PartialFunction
       // with the types...
-      case _ => {}
+      case NextPlayerIs(p) => nextPlayer = Some(p)
+      case i: Int => {
+        if (i % 3 == 0 || i % 5 == 0) println("Wrong! You're out!")
+        respond(i)
+      }
+      case Fizz(i) => {
+        if (i % 3 != 0) println("Wrong! You're out!")
+        respond(i)
+      }
+      case Buzz(i) => {
+        if (i % 5 != 0) println("Wrong! You're out!")
+        respond(i)
+      }
+      case FizzBuzz(i) => {
+        if (i % 3 != 0 || i % 5 != 0) println("Wrong! You're out!")
+        respond(i)
+      }
     }
-  }
 
+  }
 
 }
